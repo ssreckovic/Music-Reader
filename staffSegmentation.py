@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 #make the image exclusively 0 or 1 (black or white)
 def binaryTransform(image):
     gray = image.convert('L')  #conversion to gray scale
-    bw = gray.point(lambda x: 0 if x<128 else 255, '1')  #binarization
+    bw = gray.point(lambda x: 0 if x<200 else 255, '1')  #binarization
 
     return bw
 
@@ -25,9 +25,6 @@ def horizontalProjection(bwArray):
 
     return pixCount
 
-
-
-
 #finds the rows that have black pixels along most of the picture
 def getLines(pixArray, picWidth):
     lineArray = []
@@ -41,35 +38,26 @@ def getLines(pixArray, picWidth):
 
 def findBarLineWidth(lineArray):
 
-    #********************************************************
-    #ASSUMING THAT THE FIRST LINE IN LIST IS A BARLINE!!!!!!
-    #********************************************************
-    lineWidths = []
-    barCounter = 0
+    lineThicknesses = []
     i=0
-
-    while barCounter < 5: #num bar Lines
-        widthSum = 1
-        while True:
-            if lineArray[i] == (lineArray[i+1]-1):
-                widthSum +=1
-                i+=1
-            else:
-                break
-        lineWidths.append(widthSum)
+    thickness = 1
+    while i< len(lineArray)-1:
+        if lineArray[i] + 1 == lineArray[i+1]:
+            thickness +=1
+        else:
+            lineThicknesses.append(thickness)
+            thickness = 1
         i+=1
-        barCounter +=1
+    lineThicknesses.append(thickness+1)
+    print "Linewidths:" + str(lineThicknesses)
+
+    if all(val==lineThicknesses[0] for val in lineThicknesses):
+        return [lineThicknesses[0]]
+
+    return lineThicknesses
 
 
-    print "Linewidths:" + str(lineWidths)
-
-    if all(val==lineWidths[0] for val in lineWidths):
-        return [lineWidths[0]]
-
-    return lineWidths
-
-
-def findSpacesSize(lineArray):
+def findSpacesSize(lineArray, lineThickness):
 
     lineDistances =[]
 
@@ -82,61 +70,61 @@ def findSpacesSize(lineArray):
     tempSpaceInfo = spacesCount.most_common(1)
 
     commonSize = tempSpaceInfo[0][0]
-    occurances = tempSpaceInfo[0][1]
+    tempCommon = 0
+    if commonSize == 1:
+        j=0
+        while j<len(lineDistances):
+            if lineDistances[j] != 1:
+                tempCommon = lineDistances[j]
+                if lineDistances[j+lineThickness[0]] > (tempCommon-1)*0.9 and lineDistances[j+lineThickness[0]] < (tempCommon+1)*1.1:
+                    commonSize = tempCommon
+                    break
+            j+=1
 
-    #if >70% of line distances are commonSize then all space sizes are the same
-    if occurances / len(lineDistances) > 0.7:
-        print "Spaces Size: " + str(commonSize)
-        return [commonSize]
-    else:
-        i=0
-        count = 0
-        spaceSizeArr = []
 
-        while i < len(lineDistances):
-            #space sizes can be inconsistent, so if its within ~10% then its accepted
-            if lineDistances[i] > (commonSize-1)*0.9 and lineDistances[i] < (commonSize+1)*1.1:
-                spaceSizeArr.append(lineDistances[i])
-                count+=1
-            else:
-                if lineDistances[i] != 1: #if its 1 then its part of the same line so dont reset
-                    count = 0
-                    spaceSizeArr = []
+    i=0
+    count = 0
+    spaceSizeArr = []
 
-            if count == 4:
-                print "Spaces size:" + str(spaceSizeArr)
-                return spaceSizeArr
-            i+=1
+    while i < len(lineDistances):
+        #space sizes can be inconsistent, so if its within ~10% then its accepted
+        if lineDistances[i] > (commonSize-1)*0.9 and lineDistances[i] < (commonSize+1)*1.1:
 
-        #shouldnt happen
-        #raise
-        print "I should not be here!!!!! (findSpacesSize)"
-        return 0
+            spaceSizeArr.append(lineDistances[i])
+            count+=1
+        else:
+            if lineDistances[i] != 1: #if its 1 then its part of the same line so dont reset
+                count = 0
+                spaceSizeArr = []
+
+        if count == 4:
+            print "Spaces size:" + str(spaceSizeArr)
+            return spaceSizeArr
+        i+=1
+
+    #shouldnt happen
+    #raise
+    print "I should not be here!!!!! (findSpacesSize)"
+    return 0
 
 
 def main():
-    imageFilePath = 'easyTestSheetMusic.png'
+    imageFilePath = 'oneLine.png'#'easyTestSheetMusic.png'
     image = Image.open(imageFilePath)
     imageArray = np.array(image)
 
-    # pixels = image.load() # create the pixel map
-    #
-    # for i in range(image.size[0]):    # for every col:
-    #     for j in range(image.size[1]):    # For every row
-    #         print pixels[i,j]
 
     bw = binaryTransform(image)
     bwArray = np.array(bw)
-    #print bwArray
     picWidth = len(bwArray[0])
 
-    pixCountArr = horizontalProjection(bwArray)
-    lineArray = getLines(pixCountArr,picWidth)
-    barLineWidth = findBarLineWidth(lineArray)
-    spaceSize = findSpacesSize(lineArray)
+    horzPicCount = horizontalProjection(bwArray)
+    lineArray = getLines(horzPicCount,picWidth)
+    lineThickness = findBarLineWidth(lineArray)
+    spaceSize = findSpacesSize(lineArray,lineThickness)
 
     import imagePreprocessing
-    imagePreprocessing.main(bw,pixCountArr, lineArray, barLineWidth,spaceSize)
+    imagePreprocessing.main(bw,horzPicCount, lineArray, lineThickness,spaceSize)
 
 
     # imgplot = plt.imshow(bw)
