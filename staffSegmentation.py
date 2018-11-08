@@ -109,7 +109,8 @@ def findSpacesSize(lineArray, lineThickness):
 
 
 def main():
-    imageFilePath = 'oneLine.png'#'easyTestSheetMusic.png'
+    imageFilePath = 'oneLine.png'
+    #imageFilePath = 'easyTestSheetMusic.png'
     image = Image.open(imageFilePath)
     imageArray = np.array(image)
 

@@ -1,5 +1,5 @@
 from PIL import Image
-import boundingBox
+from boundingBox import BoundingBox
 
 def main(bwImg, horzCount, lineLocations, barLineWidth,spaceSize):
 
@@ -7,17 +7,14 @@ def main(bwImg, horzCount, lineLocations, barLineWidth,spaceSize):
     picWidth = bwImg.size[0]
     picHeight = bwImg.size[1]
     pixels = removeBarLines(lineLocations, pixels,barLineWidth, picWidth)
-    x = verticalSearch(pixels,picWidth, picHeight)
-    # as test [minCol, maxCol, minRow, maxRow] = pixelTraversal(pixels, 289, 141)
-    #horizontalCuts
+    bBoxes = verticalSearch(pixels,picWidth, picHeight)
+    drawBoundingBox(pixels, bBoxes)
 
-                # vertical projection only done after horizontal cuts are made to cut the
-                # image into specfic bar lines, it will be done to each section
-                # vertCount = verticalProjection(pixels, picWidth,picHeight)
-
-    #propogate vertically when pixel hit turn it red and recursively(BFS?) go through until
-    #no more new pixels found. Keep track of min & max x-y values and then create
-    #a bounding box object that contains the lineLocations
+    # [minCol, maxCol, minRow, maxRow,location] = pixelTraversal(pixels, 479, 102)
+    # box = BoundingBox([minCol,minRow], (maxCol - minCol), maxRow - minRow)
+    # print minCol, maxCol, minRow, maxRow
+    # print len(location)
+    #box.showInfo()
     bwImg.save('testOutput.png')
 
 
@@ -63,31 +60,39 @@ def eraseLine(thickness, startLine, image, picWidth):
 def verticalSearch(pixels, picWidth, picHeight):
 
     vertCount = [0] * picWidth
+    boxList = []
 
     for col in range(picWidth):
         count = 0
         for row in range(picHeight):
-            if pixels[col,row] == 0:
-                [minCol, maxCol, minRow, maxRow] = pixelTraversal(pixels, col, row)
-                #put these in boundng boxes afterwards
-    return 0
 
+            #if a black pixel is found traverse through the neighboring ones to find the edges of the object
+            #and then make a bounding box for it.
+            if pixels[col,row] == 0:
+                [minCol, maxCol, minRow, maxRow, pixLocations] = pixelTraversal(pixels, col, row)
+                box = BoundingBox([minCol,minRow], (maxCol - minCol), maxRow - minRow, pixLocations)
+                boxList.append(box)
+
+    return boxList
+
+#recursively traverses nearby pixels that are black and finds the minimum and maximum column
+#and row values for the object
 def pixelTraversal(pixels, startCol, startRow):
 
-    pixels[startCol,startRow] = 128
+    pixels[startCol,startRow] = 100
     minCol = startCol
     maxCol = startCol
     minRow = startRow
     maxRow = startRow
-
+    pixLocations = [[startCol, startRow]]
     directions = [[1,0],[0,-1],[0,1],[-1,0]]#[[0,-1],[-1,0],[0,1],[1,0]]
 
     for i in range(len(directions)):
 
         if pixels[(startCol + directions[i][0]), (startRow + directions[i][1])] == 0:
-            [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow] = pixelTraversal(pixels, (startCol + directions[i][0]), (startRow + directions[i][1]))
-            #print 'col and row ' + str(startCol + directions[i][0]) + ',' + str(startRow + directions[i][1])
-            if tempMinCol > minCol:
+            [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow, location] = pixelTraversal(pixels, (startCol + directions[i][0]), (startRow + directions[i][1]))
+            
+            if tempMinCol < minCol:
                 minCol = tempMinCol
             if tempMaxCol > maxCol:
                 maxCol = tempMaxCol
@@ -96,7 +101,30 @@ def pixelTraversal(pixels, startCol, startRow):
             if tempMaxRow > maxRow:
                 maxRow = tempMaxRow
 
-    return [minCol,maxCol, minRow, maxRow]
+            pixLocations += location
+
+    return [minCol,maxCol, minRow, maxRow, pixLocations]
+
+#draws bounding boxes around the found objects
+def drawBoundingBox(pixels, boxList):
+
+    for box in boxList:
+        origin = box.origin
+        height = box.height
+        width = box.width
+        i = 0
+        while i <= height:
+            pixels[origin[0],origin[1] + i] = 0
+            pixels[origin[0]+width,origin[1] + i] = 0
+            i+=1
+
+        i=0
+        while i <= width:
+            pixels[origin[0]+i,origin[1]] = 0
+            pixels[origin[0]+i,origin[1]+height] = 0
+            i+=1
+
+
 
 
 if __name__ == "__main__":
