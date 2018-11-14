@@ -9,8 +9,8 @@ class BoundingBox:
 
     def showInfo(self):
         print "origin " + str(self.origin)
-        print "width " + str(self.width)
-        print "height " + str(self.height)
+        #print "width " + str(self.width)
+        #print "height " + str(self.height)
 
 
     #subject to change
@@ -19,5 +19,5 @@ class BoundingBox:
         blackPix = self.blackPix
         for i in range(len(blackPix)-1):
             grid[blackPix[i][0] - self.origin[0]][blackPix[i][1] - self.origin[1]] = 0
-        
+
         return grid

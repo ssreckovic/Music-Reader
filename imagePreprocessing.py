@@ -1,15 +1,19 @@
 from PIL import Image
 from boundingBox import BoundingBox
 
-def main(bwImg, horzCount, lineLocations, barLineWidth,spaceSize):
+def main(bwImg, lineLocations, barLineWidth,spaceSize,spaceBetweenBars):
 
     pixels = bwImg.load()
     picWidth = bwImg.size[0]
     picHeight = bwImg.size[1]
+    barSize = sum(barLineWidth) + sum(spaceSize)
     pixels = removeBarLines(lineLocations, pixels,barLineWidth, picWidth)
     bBoxes = verticalSearch(pixels,picWidth, picHeight)
     drawBoundingBox(pixels, bBoxes)
+    bBoxes = sortObjects(bBoxes,spaceBetweenBars, spaceSize, lineLocations)
 
+    for box in bBoxes:
+        box.showInfo()
     # [minCol, maxCol, minRow, maxRow,location] = pixelTraversal(pixels, 479, 102)
     # box = BoundingBox([minCol,minRow], (maxCol - minCol), maxRow - minRow)
     # print minCol, maxCol, minRow, maxRow
@@ -31,7 +35,8 @@ def removeBarLines(lineLocations,pixels, barLineWidth, picWidth):
             lineThickness = barLineWidth[lineCounter]
 
         pixels = eraseLine(lineThickness, lineLocations[lineNum],pixels, picWidth)
-        lineNum+=lineThickness
+        #lineNum+=lineThickness
+        lineNum+=1
         lineCounter +=1
 
 
@@ -91,7 +96,7 @@ def pixelTraversal(pixels, startCol, startRow):
 
         if pixels[(startCol + directions[i][0]), (startRow + directions[i][1])] == 0:
             [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow, location] = pixelTraversal(pixels, (startCol + directions[i][0]), (startRow + directions[i][1]))
-            
+
             if tempMinCol < minCol:
                 minCol = tempMinCol
             if tempMaxCol > maxCol:
@@ -124,6 +129,68 @@ def drawBoundingBox(pixels, boxList):
             pixels[origin[0]+i,origin[1]+height] = 0
             i+=1
 
+#sort the object in order from top left to top right, then down to the next row
+def sortObjects(boxList, barSpace, spaceSize, lineLocations):
+
+    boxList = quickSort(boxList,0,len(boxList)-1)
+
+    sortedBoxes = []
+    for i in range(len(lineLocations)/5):
+        lineBoxes = []
+        start = lineLocations[i*5]
+        print lineLocations[i*5]
+        upper = start - spaceSize[0] * 6
+        lower = start + spaceSize[0] * 10
+        for j in range(len(boxList)):
+            if boxList[j].origin[1] >= upper and boxList[j].origin[1] <= lower:
+                lineBoxes.append(boxList[j])
+
+        sortedBoxes +=lineBoxes
+
+    return sortedBoxes
+
+
+
+def quickSort(alist,first,last):
+
+    if first<last:
+
+       splitpoint = partition(alist,first,last)
+
+       quickSort(alist,first,splitpoint-1)
+       quickSort(alist,splitpoint+1,last)
+
+    return alist
+
+
+
+def partition(alist,first,last):
+   pivotvalue = alist[first]
+
+   leftmark = first+1
+   rightmark = last
+
+   done = False
+   while not done:
+
+       while leftmark <= rightmark and (alist[leftmark].origin[0] <= pivotvalue.origin[0]): #or (alist[leftmark].origin[1] == pivotvalue.origin[1] and alist[leftmark].origin[0] <= pivotvalue.origin[0])):
+           leftmark = leftmark + 1
+
+       while rightmark >= leftmark and (alist[rightmark].origin[0] >= pivotvalue.origin[0]): #or (alist[leftmark].origin[1] == pivotvalue.origin[1] and alist[leftmark].origin[0] >= pivotvalue.origin[0])):
+           rightmark = rightmark -1
+
+       if rightmark < leftmark:
+           done = True
+       else:
+           temp = alist[leftmark]
+           alist[leftmark] = alist[rightmark]
+           alist[rightmark] = temp
+
+   temp = alist[first]
+   alist[first] = alist[rightmark]
+   alist[rightmark] = temp
+
+   return rightmark
 
 
 

@@ -39,9 +39,13 @@ def getLines(pixArray, picWidth):
 def findBarLineWidth(lineArray):
 
     lineThicknesses = []
+    newLineArray = []
     i=0
     thickness = 1
     while i< len(lineArray)-1:
+        if thickness == 1:
+            newLineArray.append(lineArray[i])
+
         if lineArray[i] + 1 == lineArray[i+1]:
             thickness +=1
         else:
@@ -52,9 +56,9 @@ def findBarLineWidth(lineArray):
     print "Linewidths:" + str(lineThicknesses)
 
     if all(val==lineThicknesses[0] for val in lineThicknesses):
-        return [lineThicknesses[0]]
+        return [lineThicknesses[0],newLineArray]
 
-    return lineThicknesses
+    return [lineThicknesses,newLineArray]
 
 
 def findSpacesSize(lineArray, lineThickness):
@@ -67,7 +71,9 @@ def findSpacesSize(lineArray, lineThickness):
     #gets the mode of the array(most common space size)
     print "Line distances" + str(lineDistances)
     spacesCount = Counter(lineDistances)
+    spaceBetweenBars = max(lineDistances)
     tempSpaceInfo = spacesCount.most_common(1)
+
 
     commonSize = tempSpaceInfo[0][0]
     tempCommon = 0
@@ -99,18 +105,19 @@ def findSpacesSize(lineArray, lineThickness):
 
         if count == 4:
             print "Spaces size:" + str(spaceSizeArr)
-            return spaceSizeArr
+            return [spaceSizeArr,spaceBetweenBars]
         i+=1
 
     #shouldnt happen
     #raise
     print "I should not be here!!!!! (findSpacesSize)"
-    return 0
+    return []
+
 
 
 def main():
-    imageFilePath = 'oneLine.png'
-    #imageFilePath = 'easyTestSheetMusic.png'
+    #imageFilePath = 'oneLine.png'
+    imageFilePath = 'easyTestSheetMusic.png'
     image = Image.open(imageFilePath)
     imageArray = np.array(image)
 
@@ -121,11 +128,14 @@ def main():
 
     horzPicCount = horizontalProjection(bwArray)
     lineArray = getLines(horzPicCount,picWidth)
-    lineThickness = findBarLineWidth(lineArray)
-    spaceSize = findSpacesSize(lineArray,lineThickness)
+    lineThickness, newLineArray = findBarLineWidth(lineArray)
+    lineArray = newLineArray
+    print lineArray
+    spaceSize, spaceBetweenBars = findSpacesSize(lineArray,lineThickness)
+
 
     import imagePreprocessing
-    imagePreprocessing.main(bw,horzPicCount, lineArray, lineThickness,spaceSize)
+    imagePreprocessing.main(bw, lineArray, lineThickness,spaceSize, spaceBetweenBars)
 
 
     # imgplot = plt.imshow(bw)
