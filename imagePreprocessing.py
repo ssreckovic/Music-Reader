@@ -8,17 +8,13 @@ def main(bwImg, lineLocations, barLineWidth,spaceSize,spaceBetweenBars):
     picHeight = bwImg.size[1]
     barSize = sum(barLineWidth) + sum(spaceSize)
     pixels = removeBarLines(lineLocations, pixels,barLineWidth, picWidth)
-    bBoxes = verticalSearch(pixels,picWidth, picHeight)
+    bBoxes = findObjects(pixels,picWidth, picHeight)
     drawBoundingBox(pixels, bBoxes)
     bBoxes = sortObjects(bBoxes,spaceBetweenBars, spaceSize, lineLocations)
 
     for box in bBoxes:
         box.showInfo()
-    # [minCol, maxCol, minRow, maxRow,location] = pixelTraversal(pixels, 479, 102)
-    # box = BoundingBox([minCol,minRow], (maxCol - minCol), maxRow - minRow)
-    # print minCol, maxCol, minRow, maxRow
-    # print len(location)
-    #box.showInfo()
+
     bwImg.save('testOutput.png')
 
 
@@ -62,7 +58,7 @@ def eraseLine(thickness, startLine, image, picWidth):
     return image
 
 #makes a vertical projection of the pixels in the pictures
-def verticalSearch(pixels, picWidth, picHeight):
+def findObjects(pixels, picWidth, picHeight):
 
     vertCount = [0] * picWidth
     boxList = []
@@ -75,6 +71,10 @@ def verticalSearch(pixels, picWidth, picHeight):
             #and then make a bounding box for it.
             if pixels[col,row] == 0:
                 [minCol, maxCol, minRow, maxRow, pixLocations] = pixelTraversal(pixels, col, row)
+                #if its just 1 pixel found
+                # if [minCol, maxCol, minRow, maxRow] == [col,col,row,row]:
+                #     pixels[col,row] = 255
+                # else:
                 box = BoundingBox([minCol,minRow], (maxCol - minCol), maxRow - minRow, pixLocations)
                 boxList.append(box)
 
@@ -173,10 +173,10 @@ def partition(alist,first,last):
    done = False
    while not done:
 
-       while leftmark <= rightmark and (alist[leftmark].origin[0] <= pivotvalue.origin[0]): #or (alist[leftmark].origin[1] == pivotvalue.origin[1] and alist[leftmark].origin[0] <= pivotvalue.origin[0])):
+       while leftmark <= rightmark and (alist[leftmark].origin[0] <= pivotvalue.origin[0]):
            leftmark = leftmark + 1
 
-       while rightmark >= leftmark and (alist[rightmark].origin[0] >= pivotvalue.origin[0]): #or (alist[leftmark].origin[1] == pivotvalue.origin[1] and alist[leftmark].origin[0] >= pivotvalue.origin[0])):
+       while rightmark >= leftmark and (alist[rightmark].origin[0] >= pivotvalue.origin[0]):
            rightmark = rightmark -1
 
        if rightmark < leftmark:

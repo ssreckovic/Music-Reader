@@ -1,6 +1,7 @@
 from PIL import Image
 from collections import Counter
 import numpy as np
+import cv2
 import matplotlib.pyplot as plt
 
 #make the image exclusively 0 or 1 (black or white)
@@ -120,9 +121,10 @@ def main():
     imageFilePath = 'easyTestSheetMusic.png'
     image = Image.open(imageFilePath)
     imageArray = np.array(image)
-
+    #image = cv2.medianBlur(image,2)
 
     bw = binaryTransform(image)
+    #bw =
     bwArray = np.array(bw)
     picWidth = len(bwArray[0])
 
