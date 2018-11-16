@@ -1,198 +1,147 @@
 from PIL import Image
-from boundingBox import BoundingBox
+from collections import Counter
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+import staffSegmentation
 
-def main(bwImg, lineLocations, barLineWidth,spaceSize,spaceBetweenBars):
+#make the image exclusively 0 or 1 (black or white)
+def binaryTransform(image):
+    gray = image.convert('L')  #conversion to gray scale
+    bw = gray.point(lambda x: 0 if x<200 else 255, '1')  #binarization
 
-    pixels = bwImg.load()
-    picWidth = bwImg.size[0]
-    picHeight = bwImg.size[1]
-    barSize = sum(barLineWidth) + sum(spaceSize)
-    pixels = removeBarLines(lineLocations, pixels,barLineWidth, picWidth)
-    bBoxes = findObjects(pixels,picWidth, picHeight)
-    drawBoundingBox(pixels, bBoxes)
-    bBoxes = sortObjects(bBoxes,spaceBetweenBars, spaceSize, lineLocations)
+    return bw
 
-    for box in bBoxes:
-        box.showInfo()
+#returns an array of the number of black pixels in each row of the picture
+def horizontalProjection(bwArray):
+    rows = len(bwArray)
+    cols = len(bwArray[0])
+    print "Rows:" + str(rows)
+    print "Cols:" + str(cols)
+    pixCount = [0] * rows
 
-    bwImg.save('testOutput.png')
+    for row in range(rows):
+        for col in range(cols):
+            if not bwArray[row][col]:
+                pixCount[row] +=1
 
+    return pixCount
 
-#removes the bar lines from the sheet music
-def removeBarLines(lineLocations,pixels, barLineWidth, picWidth):
+#finds the rows that have black pixels along most of the picture
+def getLines(pixArray, picWidth):
+    lineArray = []
+    for row in range(len(pixArray)):
+        if pixArray[row] >= (picWidth * 0.8):
+            lineArray.append(row) #append the row that the line is found in
 
-    oneLineThickness = (len(barLineWidth) == 1)
-    lineThickness = barLineWidth[0]
-
-    lineNum = 0
-    lineCounter = 0
-    while lineNum < len(lineLocations):
-        if not oneLineThickness:
-            lineThickness = barLineWidth[lineCounter]
-
-        pixels = eraseLine(lineThickness, lineLocations[lineNum],pixels, picWidth)
-        #lineNum+=lineThickness
-        lineNum+=1
-        lineCounter +=1
+    print "Lines found at: " + str(lineArray)
+    return lineArray
 
 
-    return pixels
+def findBarLineWidth(lineArray):
 
-#removes a single line with given thickness from the sheet music without
-#effecting any other objects on the sheet
-def eraseLine(thickness, startLine, image, picWidth):
+    lineThicknesses = []
+    newLineArray = []
+    i=0
+    thickness = 1
+    while i< len(lineArray)-1:
+        if thickness == 1:
+            newLineArray.append(lineArray[i])
 
-    #************************************************************
-    #can be improved! some notes dont look the same as before etc!
-    #***********************************************************
+        if lineArray[i] + 1 == lineArray[i+1]:
+            thickness +=1
+        else:
+            lineThicknesses.append(thickness)
+            thickness = 1
+        i+=1
+    lineThicknesses.append(thickness+1)
+    print "Linewidths:" + str(lineThicknesses)
 
-    topLine = startLine
-    botLine = startLine + thickness -1
+    if all(val==lineThicknesses[0] for val in lineThicknesses):
+        return [lineThicknesses[0],newLineArray]
 
-    for col in range(picWidth):
-        if image[col,topLine] == 0 or image[col,botLine] == 0:
-            if image[col,topLine-1] == 255 or image[col,botLine+1] == 255:
-                for j in range(thickness):
-                        image[col,topLine+j] = 255
+    return [lineThicknesses,newLineArray]
 
-    return image
 
-#makes a vertical projection of the pixels in the pictures
-def findObjects(pixels, picWidth, picHeight):
+def findSpacesSize(lineArray, lineThickness):
 
-    vertCount = [0] * picWidth
-    boxList = []
+    lineDistances =[]
 
-    for col in range(picWidth):
-        count = 0
-        for row in range(picHeight):
+    for i in range(len(lineArray)-1):
+        lineDistances.append(lineArray[i+1] - lineArray[i])
 
-            #if a black pixel is found traverse through the neighboring ones to find the edges of the object
-            #and then make a bounding box for it.
-            if pixels[col,row] == 0:
-                [minCol, maxCol, minRow, maxRow, pixLocations] = pixelTraversal(pixels, col, row)
-                #if its just 1 pixel found
-                # if [minCol, maxCol, minRow, maxRow] == [col,col,row,row]:
-                #     pixels[col,row] = 255
-                # else:
-                box = BoundingBox([minCol,minRow], (maxCol - minCol), maxRow - minRow, pixLocations)
-                boxList.append(box)
+    #gets the mode of the array(most common space size)
+    print "Line distances" + str(lineDistances)
+    spacesCount = Counter(lineDistances)
+    spaceBetweenBars = max(lineDistances)
+    tempSpaceInfo = spacesCount.most_common(1)
 
-    return boxList
 
-#recursively traverses nearby pixels that are black and finds the minimum and maximum column
-#and row values for the object
-def pixelTraversal(pixels, startCol, startRow):
+    commonSize = tempSpaceInfo[0][0]
+    tempCommon = 0
+    if commonSize == 1:
+        j=0
+        while j<len(lineDistances):
+            if lineDistances[j] != 1:
+                tempCommon = lineDistances[j]
+                if lineDistances[j+lineThickness[0]] > (tempCommon-1)*0.9 and lineDistances[j+lineThickness[0]] < (tempCommon+1)*1.1:
+                    commonSize = tempCommon
+                    break
+            j+=1
 
-    pixels[startCol,startRow] = 100
-    minCol = startCol
-    maxCol = startCol
-    minRow = startRow
-    maxRow = startRow
-    pixLocations = [[startCol, startRow]]
-    directions = [[1,0],[0,-1],[0,1],[-1,0]]#[[0,-1],[-1,0],[0,1],[1,0]]
 
-    for i in range(len(directions)):
+    i=0
+    count = 0
+    spaceSizeArr = []
 
-        if pixels[(startCol + directions[i][0]), (startRow + directions[i][1])] == 0:
-            [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow, location] = pixelTraversal(pixels, (startCol + directions[i][0]), (startRow + directions[i][1]))
+    while i < len(lineDistances):
+        #space sizes can be inconsistent, so if its within ~10% then its accepted
+        if lineDistances[i] > (commonSize-1)*0.9 and lineDistances[i] < (commonSize+1)*1.1:
 
-            if tempMinCol < minCol:
-                minCol = tempMinCol
-            if tempMaxCol > maxCol:
-                maxCol = tempMaxCol
-            if tempMinRow < minRow:
-                minRow = tempMinRow
-            if tempMaxRow > maxRow:
-                maxRow = tempMaxRow
+            spaceSizeArr.append(lineDistances[i])
+            count+=1
+        else:
+            if lineDistances[i] != 1: #if its 1 then its part of the same line so dont reset
+                count = 0
+                spaceSizeArr = []
 
-            pixLocations += location
+        if count == 4:
+            print "Spaces size:" + str(spaceSizeArr)
+            return [spaceSizeArr,spaceBetweenBars]
+        i+=1
 
-    return [minCol,maxCol, minRow, maxRow, pixLocations]
-
-#draws bounding boxes around the found objects
-def drawBoundingBox(pixels, boxList):
-
-    for box in boxList:
-        origin = box.origin
-        height = box.height
-        width = box.width
-        i = 0
-        while i <= height:
-            pixels[origin[0],origin[1] + i] = 0
-            pixels[origin[0]+width,origin[1] + i] = 0
-            i+=1
-
-        i=0
-        while i <= width:
-            pixels[origin[0]+i,origin[1]] = 0
-            pixels[origin[0]+i,origin[1]+height] = 0
-            i+=1
-
-#sort the object in order from top left to top right, then down to the next row
-def sortObjects(boxList, barSpace, spaceSize, lineLocations):
-
-    boxList = quickSort(boxList,0,len(boxList)-1)
-
-    sortedBoxes = []
-    for i in range(len(lineLocations)/5):
-        lineBoxes = []
-        start = lineLocations[i*5]
-        print lineLocations[i*5]
-        upper = start - spaceSize[0] * 6
-        lower = start + spaceSize[0] * 10
-        for j in range(len(boxList)):
-            if boxList[j].origin[1] >= upper and boxList[j].origin[1] <= lower:
-                lineBoxes.append(boxList[j])
-
-        sortedBoxes +=lineBoxes
-
-    return sortedBoxes
+    #shouldnt happen
+    #raise
+    print "I should not be here!!!!! (findSpacesSize)"
+    return []
 
 
 
-def quickSort(alist,first,last):
+def main():
+    #imageFilePath = 'oneLine.png'
+    imageFilePath = 'easyTestSheetMusic.png'
+    image = Image.open(imageFilePath)
+    imageArray = np.array(image)
+    #image = cv2.medianBlur(image,2)
 
-    if first<last:
+    bw = binaryTransform(image)
+    #bw =
+    bwArray = np.array(bw)
+    picWidth = len(bwArray[0])
 
-       splitpoint = partition(alist,first,last)
-
-       quickSort(alist,first,splitpoint-1)
-       quickSort(alist,splitpoint+1,last)
-
-    return alist
-
-
-
-def partition(alist,first,last):
-   pivotvalue = alist[first]
-
-   leftmark = first+1
-   rightmark = last
-
-   done = False
-   while not done:
-
-       while leftmark <= rightmark and (alist[leftmark].origin[0] <= pivotvalue.origin[0]):
-           leftmark = leftmark + 1
-
-       while rightmark >= leftmark and (alist[rightmark].origin[0] >= pivotvalue.origin[0]):
-           rightmark = rightmark -1
-
-       if rightmark < leftmark:
-           done = True
-       else:
-           temp = alist[leftmark]
-           alist[leftmark] = alist[rightmark]
-           alist[rightmark] = temp
-
-   temp = alist[first]
-   alist[first] = alist[rightmark]
-   alist[rightmark] = temp
-
-   return rightmark
+    horzPicCount = horizontalProjection(bwArray)
+    lineArray = getLines(horzPicCount,picWidth)
+    lineThickness, newLineArray = findBarLineWidth(lineArray)
+    lineArray = newLineArray
+    print lineArray
+    spaceSize, spaceBetweenBars = findSpacesSize(lineArray,lineThickness)
 
 
+    staffSegmentation.main(bw, lineArray, lineThickness,spaceSize, spaceBetweenBars)
+
+
+    # imgplot = plt.imshow(bw)
+    # plt.show()
 
 if __name__ == "__main__":
     main()
