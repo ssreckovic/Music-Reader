@@ -1,21 +1,29 @@
 from PIL import Image
+import numpy as np
+import cv2 as cv
 from boundingBox import BoundingBox
 
 def main(bwImg, lineLocations, barLineWidth,spaceSize,spaceBetweenBars):
 
-    pixels = bwImg.load()
-    picWidth = bwImg.size[0]
-    picHeight = bwImg.size[1]
-    barSize = sum(barLineWidth) + sum(spaceSize)
+
+    pixels = np.array(bwImg) #pixels(row, col)
+    picWidth = len(bwImg[0]) #bwImg.size[0]
+    picHeight = len(bwImg)   #bwImg.size[1]
+
     pixels = removeBarLines(lineLocations, pixels,barLineWidth, picWidth)
-    bBoxes = findObjects(pixels,picWidth, picHeight)
-    drawBoundingBox(pixels, bBoxes)
-    bBoxes = sortObjects(bBoxes,spaceBetweenBars, spaceSize, lineLocations)
+    #[minCol, maxCol, minRow, maxRow, pixLocations] = pixelTraversal(pixels, 26, 88)
+    #print [minCol, maxCol, minRow, maxRow, pixLocations]
+    # bBoxes = findObjects(pixels,picWidth, picHeight)
+    # drawBoundingBox(pixels, bBoxes)
+    #bBoxes = sortObjects(bBoxes,spaceBetweenBars, spaceSize, lineLocations)
 
-    for box in bBoxes:
-        box.showInfo()
+    # for box in bBoxes:
+    #     box.showInfo()
 
-    bwImg.save('testOutput.png')
+    #pixels.save('testOutput.png')
+    cv.imwrite('testOutput.png', pixels)
+    #cv.imshow("image", pixels);
+    #cv.waitKey();
 
 
 #removes the bar lines from the sheet music
@@ -48,12 +56,17 @@ def eraseLine(thickness, startLine, image, picWidth):
 
     topLine = startLine
     botLine = startLine + thickness -1
-
     for col in range(picWidth):
-        if image[col,topLine] == 0 or image[col,botLine] == 0:
-            if image[col,topLine-1] == 255 or image[col,botLine+1] == 255:
+        if image.item(topLine,col) == 0 or image.item(botLine,col) == 0:
+            if image.item(topLine-1, col) == 255 or image.item(botLine+1,col) == 255:
                 for j in range(thickness):
-                        image[col,topLine+j] = 255
+                    image.itemset((topLine+j,col),255)
+    #
+    # for col in range(picWidth):
+    #     if image[col,topLine] == 0 or image[col,botLine] == 0:
+    #         if image[col,topLine-1] == 255 or image[col,botLine+1] == 255:
+    #             for j in range(thickness):
+    #                     image[col,topLine+j] = 255
 
     return image
 
@@ -69,13 +82,13 @@ def findObjects(pixels, picWidth, picHeight):
 
             #if a black pixel is found traverse through the neighboring ones to find the edges of the object
             #and then make a bounding box for it.
-            if pixels[col,row] == 0:
+            if pixels.item(row,col) == 0:
                 [minCol, maxCol, minRow, maxRow, pixLocations] = pixelTraversal(pixels, col, row)
                 #if its just 1 pixel found
                 # if [minCol, maxCol, minRow, maxRow] == [col,col,row,row]:
                 #     pixels[col,row] = 255
                 # else:
-                box = BoundingBox([minCol,minRow], (maxCol - minCol), maxRow - minRow, pixLocations)
+                box = BoundingBox([minRow,minCol], (maxCol - minCol), (maxRow - minRow), pixLocations)
                 boxList.append(box)
 
     return boxList
@@ -84,7 +97,7 @@ def findObjects(pixels, picWidth, picHeight):
 #and row values for the object
 def pixelTraversal(pixels, startCol, startRow):
 
-    pixels[startCol,startRow] = 100
+    pixels.itemset((startRow,startCol),100)
     minCol = startCol
     maxCol = startCol
     minRow = startRow
@@ -93,8 +106,8 @@ def pixelTraversal(pixels, startCol, startRow):
     directions = [[1,0],[0,-1],[0,1],[-1,0]]#[[0,-1],[-1,0],[0,1],[1,0]]
 
     for i in range(len(directions)):
-
-        if pixels[(startCol + directions[i][0]), (startRow + directions[i][1])] == 0:
+        if pixels.item(startRow + directions[i][1], startCol + directions[i][0]):
+        # if pixels[(startCol + directions[i][0]), (startRow + directions[i][1])] == 0:
             [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow, location] = pixelTraversal(pixels, (startCol + directions[i][0]), (startRow + directions[i][1]))
 
             if tempMinCol < minCol:
@@ -119,15 +132,20 @@ def drawBoundingBox(pixels, boxList):
         width = box.width
         i = 0
         while i <= height:
-            pixels[origin[0],origin[1] + i] = 0
-            pixels[origin[0]+width,origin[1] + i] = 0
+            # pixels[origin[0],origin[1] + i] = 0
+            # pixels[origin[0]+width,origin[1] + i] = 0
+            # i+=1
+            pixels.itemset((origin[0] + i, origin[1]), 0)
+            pixels.itemset((orgin[0] + i, origin[1]+width),0)
             i+=1
-
         i=0
         while i <= width:
-            pixels[origin[0]+i,origin[1]] = 0
-            pixels[origin[0]+i,origin[1]+height] = 0
+            pixels.itemset((origin[0],origin[1] + i),0)
+            pixels.itemset((origin[0] + height, origin[1] + i ),0)
             i+=1
+            # pixels[origin[0]+i,origin[1]] = 0
+            # pixels[origin[0]+i,origin[1]+height] = 0
+            # i+=1
 
 #sort the object in order from top left to top right, then down to the next row
 def sortObjects(boxList, barSpace, spaceSize, lineLocations):
@@ -142,7 +160,7 @@ def sortObjects(boxList, barSpace, spaceSize, lineLocations):
         upper = start - spaceSize[0] * 6
         lower = start + spaceSize[0] * 10
         for j in range(len(boxList)):
-            if boxList[j].origin[1] >= upper and boxList[j].origin[1] <= lower:
+            if boxList[j].origin[0] >= upper and boxList[j].origin[0] <= lower:
                 lineBoxes.append(boxList[j])
 
         sortedBoxes +=lineBoxes
@@ -173,10 +191,10 @@ def partition(alist,first,last):
    done = False
    while not done:
 
-       while leftmark <= rightmark and (alist[leftmark].origin[0] <= pivotvalue.origin[0]):
+       while leftmark <= rightmark and (alist[leftmark].origin[1] <= pivotvalue.origin[1]):
            leftmark = leftmark + 1
 
-       while rightmark >= leftmark and (alist[rightmark].origin[0] >= pivotvalue.origin[0]):
+       while rightmark >= leftmark and (alist[rightmark].origin[1] >= pivotvalue.origin[1]):
            rightmark = rightmark -1
 
        if rightmark < leftmark:
