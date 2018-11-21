@@ -12,9 +12,9 @@ def main(bwImg, lineLocations, barLineWidth,spaceSize,spaceBetweenBars):
 
     pixels = removeBarLines(lineLocations, pixels,barLineWidth, picWidth)
     #[minCol, maxCol, minRow, maxRow, pixLocations] = pixelTraversal(pixels, 26, 88)
-    #print [minCol, maxCol, minRow, maxRow, pixLocations]
-    # bBoxes = findObjects(pixels,picWidth, picHeight)
-    # drawBoundingBox(pixels, bBoxes)
+    # print [minCol, maxCol, minRow, maxRow, pixLocations]
+    bBoxes = findObjects(pixels,picWidth, picHeight)
+    drawBoundingBox(pixels, bBoxes)
     #bBoxes = sortObjects(bBoxes,spaceBetweenBars, spaceSize, lineLocations)
 
     # for box in bBoxes:
@@ -102,13 +102,14 @@ def pixelTraversal(pixels, startCol, startRow):
     maxCol = startCol
     minRow = startRow
     maxRow = startRow
-    pixLocations = [[startCol, startRow]]
-    directions = [[1,0],[0,-1],[0,1],[-1,0]]#[[0,-1],[-1,0],[0,1],[1,0]]
+    pixLocations = [[startRow, startCol]]
+    directions = [[0,1],[-1,0],[1,0],[0,-1]] #some combinations cause crash in recursion
+
 
     for i in range(len(directions)):
-        if pixels.item(startRow + directions[i][1], startCol + directions[i][0]):
+        if pixels.item((startRow + directions[i][0]), (startCol + directions[i][1])) == 0 :
         # if pixels[(startCol + directions[i][0]), (startRow + directions[i][1])] == 0:
-            [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow, location] = pixelTraversal(pixels, (startCol + directions[i][0]), (startRow + directions[i][1]))
+            [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow, location] = pixelTraversal(pixels, (startCol + directions[i][1]), (startRow + directions[i][0]))
 
             if tempMinCol < minCol:
                 minCol = tempMinCol
@@ -132,20 +133,14 @@ def drawBoundingBox(pixels, boxList):
         width = box.width
         i = 0
         while i <= height:
-            # pixels[origin[0],origin[1] + i] = 0
-            # pixels[origin[0]+width,origin[1] + i] = 0
-            # i+=1
             pixels.itemset((origin[0] + i, origin[1]), 0)
-            pixels.itemset((orgin[0] + i, origin[1]+width),0)
+            pixels.itemset((origin[0] + i, origin[1]+width),0)
             i+=1
         i=0
         while i <= width:
             pixels.itemset((origin[0],origin[1] + i),0)
             pixels.itemset((origin[0] + height, origin[1] + i ),0)
             i+=1
-            # pixels[origin[0]+i,origin[1]] = 0
-            # pixels[origin[0]+i,origin[1]+height] = 0
-            # i+=1
 
 #sort the object in order from top left to top right, then down to the next row
 def sortObjects(boxList, barSpace, spaceSize, lineLocations):
