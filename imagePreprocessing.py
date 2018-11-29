@@ -5,11 +5,12 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import staffSegmentation
 
+PIXEL_THRESHOLD = 170
 #make the image exclusively 0 or 1 (black or white)
 def binaryTransform(image):
 
     img =  cv.GaussianBlur(image, (3,3),4) #these values determined by trial
-    ret2,bw = cv.threshold(img,150,255,cv.THRESH_BINARY)
+    ret2,bw = cv.threshold(img,PIXEL_THRESHOLD,255,cv.THRESH_BINARY)
 
     # gray = image.convert('L')  #conversion to gray scale
     # bw = gray.point(lambda x: 0 if x<200 else 255, '1')  #binarization
@@ -122,8 +123,8 @@ def findSpacesSize(lineArray, lineThickness):
 
 
 def main():
-    imageFilePath = 'oneLine.png'
-    #imageFilePath = 'easyTestSheetMusic.png'
+    #imageFilePath = 'oneLine.png'
+    imageFilePath = 'easyTestSheetMusic.png'
     #image = Image.open(imageFilePath)
     image = cv.imread(imageFilePath,0)
 
@@ -141,13 +142,13 @@ def main():
     print lineArray
     spaceSize, spaceBetweenBars = findSpacesSize(lineArray,lineThickness)
 
+    plt.imshow(bw,'gray')
+    plt.show()
     # for i in range(len(bwArray[0])):
     #     print bwArray.item(i,10)
     staffSegmentation.main(bw, lineArray, lineThickness,spaceSize, spaceBetweenBars)
 
 
-    #plt.imshow(bw,'gray')
-    #plt.show()
 
 if __name__ == "__main__":
     main()
