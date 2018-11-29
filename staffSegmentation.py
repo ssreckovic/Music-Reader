@@ -58,15 +58,22 @@ def eraseLine(thickness, startLine, image, picWidth):
     botLine = startLine + thickness -1
     for col in range(picWidth):
         if image.item(topLine,col) == 0 or image.item(botLine,col) == 0:
-            if image.item(topLine-1, col) == 255 or image.item(botLine+1,col) == 255:
+            if image.item(topLine-1, col) == 255 and image.item(botLine+1,col) == 255:
                 for j in range(thickness):
                     image.itemset((topLine+j,col),255)
-    #
-    # for col in range(picWidth):
-    #     if image[col,topLine] == 0 or image[col,botLine] == 0:
-    #         if image[col,topLine-1] == 255 or image[col,botLine+1] == 255:
-    #             for j in range(thickness):
-    #                     image[col,topLine+j] = 255
+            elif image.item(topLine - 1, col) == 255 and image.item(botLine+1,col) == 0:
+                thick = thickness/2
+                if thick < 1:
+                    thick = 1
+                for j in range(thick):
+                    image.itemset((topLine + j, col),255)
+
+            elif image.item(topLine - 1, col) == 0 and image.item(botLine+1,col) == 255:
+                thick = thickness/2
+                if thick < 1:
+                    thick = 1
+                for j in range(thick):
+                    image.itemset((botLine - j, col),255)
 
     return image
 
@@ -97,18 +104,21 @@ def findObjects(pixels, picWidth, picHeight):
 #and row values for the object
 def pixelTraversal(pixels, startCol, startRow):
 
+    up = [-1,0]
+    down = [1,0]
+    left = [0,-1]
+    right = [0,1]
+
     pixels.itemset((startRow,startCol),100)
     minCol = startCol
     maxCol = startCol
     minRow = startRow
     maxRow = startRow
     pixLocations = [[startRow, startCol]]
-    directions = [[0,1],[-1,0],[1,0],[0,-1]] #some combinations cause crash in recursion
-
+    directions = [left,right, up, down]
 
     for i in range(len(directions)):
         if pixels.item((startRow + directions[i][0]), (startCol + directions[i][1])) == 0 :
-        # if pixels[(startCol + directions[i][0]), (startRow + directions[i][1])] == 0:
             [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow, location] = pixelTraversal(pixels, (startCol + directions[i][1]), (startRow + directions[i][0]))
 
             if tempMinCol < minCol:
