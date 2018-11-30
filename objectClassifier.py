@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import cv2 as cv
 
 def main():
-
+    undetermined = []
+    for i in range(len(bBoxes)):
+        undetermined.append(i)
     #classifier split into categories:
     # 1. has note head
     #     a. single note head
@@ -19,5 +21,10 @@ def main():
 
     return 0
 
+def NoteHeads(bBoxes):
+    circles = cv2.HoughCircles(img,cv2.HOUGH_GRADIENT,1,20,param1=50,param3=30,minRadius=0,maxRadius=0)
+
+    numNoteHeads = len(circles)
+    
 if __name__ == "__main__":
     main()
