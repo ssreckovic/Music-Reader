@@ -6,6 +6,9 @@ class BoundingBox:
         self.blackPix = pixLocations
 
         self.grid = self.makeGrid() #pixLocations,width,Height)
+        self.objectType = ""
+        self.numNoteHeads = 0
+        self.headLocations = []
 
     def showInfo(self):
         print "origin " + str(self.origin)
@@ -13,7 +16,9 @@ class BoundingBox:
         #print "height " + str(self.height)
 
 
-    #makes a grid of the 
+    # **********************************************
+    # might want to make this in cv2 readable format
+    # **********************************************
     def makeGrid(self):
         grid = [[255]*(self.width+1)]*(self.height+1)
 
