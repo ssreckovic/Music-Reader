@@ -116,21 +116,23 @@ def pixelTraversal(pixels, startCol, startRow):
     maxRow = startRow
     pixLocations = [[startRow, startCol]]
     directions = [left,right, up, down]
+    height,width = pixels.shape
+
 
     for i in range(len(directions)):
-        if pixels.item((startRow + directions[i][0]), (startCol + directions[i][1])) == 0 :
-            [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow, location] = pixelTraversal(pixels, (startCol + directions[i][1]), (startRow + directions[i][0]))
+        if (startRow + directions[i][0]) >=0 and (startRow + directions[i][0]) < height and (startCol + directions[i][1]) >=0 and (startCol + directions[i][1]) < width:
+            if pixels.item((startRow + directions[i][0]), (startCol + directions[i][1])) == 0:
+                [tempMinCol, tempMaxCol, tempMinRow, tempMaxRow, location] = pixelTraversal(pixels, (startCol + directions[i][1]), (startRow + directions[i][0]))
 
-            if tempMinCol < minCol:
-                minCol = tempMinCol
-            if tempMaxCol > maxCol:
-                maxCol = tempMaxCol
-            if tempMinRow < minRow:
-                minRow = tempMinRow
-            if tempMaxRow > maxRow:
-                maxRow = tempMaxRow
-
-            pixLocations += location
+                if tempMinCol < minCol:
+                    minCol = tempMinCol
+                if tempMaxCol > maxCol:
+                    maxCol = tempMaxCol
+                if tempMinRow < minRow:
+                    minRow = tempMinRow
+                if tempMaxRow > maxRow:
+                    maxRow = tempMaxRow
+                pixLocations += location
 
     return [minCol,maxCol, minRow, maxRow, pixLocations]
 
