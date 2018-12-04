@@ -1,3 +1,5 @@
+import numpy as np
+
 class BoundingBox:
     def __init__(self, origin, width, height, pixLocations):
         self.origin = origin
@@ -20,8 +22,7 @@ class BoundingBox:
     # might want to make this in cv2 readable format
     # **********************************************
     def makeGrid(self):
-        grid = [[255]*(self.width+1)]*(self.height+1)
-
+        grid = np.full((self.height+1,self.width+1),255)#[[255]*(self.width+1)]*(self.height+1)
         blackPix = self.blackPix
 
         for i in range(len(blackPix)-1):
