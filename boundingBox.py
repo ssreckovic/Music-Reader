@@ -28,4 +28,5 @@ class BoundingBox:
         for i in range(len(blackPix)-1):
             grid[blackPix[i][0] - self.origin[0]][blackPix[i][1] - self.origin[1]] = 0
 
+        #return np.array(grid)
         return grid
