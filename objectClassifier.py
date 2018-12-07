@@ -21,9 +21,9 @@ def main():
     #     c. barlines/double barline
     #     d. other (cota, time signature, crecendo accents etc)
 
-    # undetermined = []
-    # for i in range(len(bBoxes)):
-    #     undetermined.append(i)
+    undetermined = []
+    for i in range(len(bBoxes)):
+        undetermined.append(i)
 
     imageFilePath = "Test Pictures/singleNote.png"
     img = cv.imread(imageFilePath,0)
@@ -34,14 +34,14 @@ def main():
     circles = NoteHeads(testBoxes)
     #cv.imwrite('singleOutput.png', testBoxImg)
     #cv.imshow("image",testBoxImg)
-    # for box in bBoxes:
-    #     if box.noteHeads == 0:
-    #         #do other things to determine what it is!
-    #     else:
-    #         #do things that you do with notes?
-            # 1. determine type of note (filled or not)
-            # 2. if not filled, num of tails
-            # 3. multi or single note!
+    for box in bBoxes:
+        if box.noteHeads == 0:
+            #do other things to determine what it is!
+        else:
+            #do things that you do with notes?
+            1. determine type of note (filled or not)
+            2. if not filled, num of tails
+            3. multi or single note!
 
     #does it make sense to do all notes in a category first? or loop through
     #and determine as you go which find in where
@@ -109,6 +109,8 @@ def NoteHeads(bBoxes):
 
 
     return circles
+
+
 
 if __name__ == "__main__":
     main()

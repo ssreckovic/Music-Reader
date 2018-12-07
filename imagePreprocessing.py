@@ -142,8 +142,8 @@ def main():
     print lineArray
     spaceSize, spaceBetweenBars = findSpacesSize(lineArray,lineThickness)
 
-    plt.imshow(bw,'gray')
-    plt.show()
+    # plt.imshow(bw,'gray')
+    # plt.show()
     # for i in range(len(bwArray[0])):
     #     print bwArray.item(i,10)
     staffSegmentation.main(bw, lineArray, lineThickness,spaceSize, spaceBetweenBars)
