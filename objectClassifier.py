@@ -36,15 +36,26 @@ def main():
     #cv.imshow("image",testBoxImg)
     for box in bBoxes:
         if box.noteHeads == 0:
+            thing = 1
             #do other things to determine what it is!
         else:
+            thing = 2
             #do things that you do with notes?
-            1. determine type of note (filled or not)
-            2. if not filled, num of tails
-            3. multi or single note!
+            # 1. determine type of note (filled or not)
+            # 2. if not filled, num of tails
+            # 3. multi or single note!
 
     #does it make sense to do all notes in a category first? or loop through
     #and determine as you go which find in where
+
+
+# this funtion takes an image and resizes it and flattens it for knn classification
+def image_to_feature_vector(image, size=(32, 32)):
+	# resize the image to a fixed size, then flatten the image into
+	# a list of raw pixel intensities
+	return cv2.resize(image, size).flatten()
+
+
 def readInTest(img):
     ret2,bw = cv.threshold(img,170,255,cv.THRESH_BINARY)
     pixels = np.array(bw)
